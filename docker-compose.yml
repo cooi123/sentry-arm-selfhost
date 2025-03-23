@@ -24,11 +24,7 @@ x-sentry-defaults: &sentry_defaults
     args:
       - SENTRY_IMAGE
   depends_on:
-    redis:
-      <<: *depends_on-healthy
     kafka:
-      <<: *depends_on-healthy
-    postgres:
       <<: *depends_on-healthy
     memcached:
       <<: *depends_on-default
@@ -59,6 +55,13 @@ x-sentry-defaults: &sentry_defaults
     SENTRY_EVENT_RETENTION_DAYS:
     SENTRY_MAIL_HOST:
     SENTRY_MAX_EXTERNAL_SOURCEMAP_SIZE:
+    SENTRY_USER_EMAIL:
+    SENTRY_USER_PASSWORD:
+    SENTRY_POSTGRES_PORT: 5432
+    SENTRY_POSTGRES_HOST:
+    SENTRY_DB_PASSWORD:
+    SENTRY_REDIS_HOST:
+    SENTRY_REDIS_PORT: 6379
   volumes:
     - "sentry-data:/data"
     - "./sentry:/etc/sentry"
@@ -71,14 +74,12 @@ x-snuba-defaults: &snuba_defaults
       <<: *depends_on-healthy
     kafka:
       <<: *depends_on-healthy
-    redis:
-      <<: *depends_on-healthy
   image: "$SNUBA_IMAGE"
   environment:
     SNUBA_SETTINGS: self_hosted
     CLICKHOUSE_HOST: clickhouse
     DEFAULT_BROKERS: "kafka:9092"
-    REDIS_HOST: redis
+    REDIS_HOST:
     UWSGI_MAX_REQUESTS: "10000"
     UWSGI_DISABLE_LOGGING: "true"
     # Leaving the value empty to just pass whatever is set
@@ -101,41 +102,6 @@ services:
       <<: *healthcheck_defaults
       # From: https://stackoverflow.com/a/31877626/5155484
       test: echo stats | nc 127.0.0.1 11211
-  redis:
-    <<: *restart_policy
-    image: "redis:6.2.14-alpine"
-    healthcheck:
-      <<: *healthcheck_defaults
-      test: redis-cli ping | grep PONG
-    volumes:
-      - "sentry-redis:/data"
-      - type: bind
-        read_only: true
-        source: ./redis.conf
-        target: /usr/local/etc/redis/redis.conf
-    ulimits:
-      nofile:
-        soft: 10032
-        hard: 10032
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
-  postgres:
-    <<: *restart_policy
-    # Using the same postgres version as Sentry dev for consistency purposes
-    image: "postgres:14.11"
-    healthcheck:
-      <<: *healthcheck_defaults
-      # Using default user "postgres" from sentry/sentry.conf.example.py or value of POSTGRES_USER if provided
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-    command:
-      [
-        "postgres",
-        "-c",
-        "max_connections=${POSTGRES_MAX_CONNECTIONS:-100}",
-      ]
-    environment:
-      POSTGRES_HOST_AUTH_METHOD: "trust"
-    volumes:
-      - "sentry-postgres:/var/lib/postgresql/data"
   kafka:
     <<: *restart_policy
     image: "confluentinc/cp-kafka:7.6.1"
@@ -474,8 +440,6 @@ services:
     depends_on:
       kafka:
         <<: *depends_on-healthy
-      redis:
-        <<: *depends_on-healthy
       web:
         <<: *depends_on-healthy
   vroom:
@@ -514,10 +478,6 @@ services:
 volumes:
   # These store application data that should persist across restarts.
   sentry-data:
-    external: true
-  sentry-postgres:
-    external: true
-  sentry-redis:
     external: true
   sentry-kafka:
     external: true

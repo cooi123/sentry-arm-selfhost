@@ -1,14 +1,27 @@
 echo "${_group}Setting up / migrating database ..."
 
-if [[ -z "${SKIP_SENTRY_MIGRATIONS:-}" ]]; then
-  # Fixes https://github.com/getsentry/self-hosted/issues/2758, where a migration fails due to indexing issue
-  $dc up --wait postgres
+# Add this before running migrations to test the PostgreSQL connection
+echo "Testing PostgreSQL connection..."
+$dcr web shell -c "
+try:
+    from django.db import connection
+    connection.ensure_connection()
+    print('PostgreSQL connection successful!')
+except Exception as e:
+    print('ERROR: Failed to connect to PostgreSQL database')
+    print(f'Error details: {str(e)}')
+    print('Database settings from Django:')
+    from django.conf import settings
+    db_settings = settings.DATABASES['default']
+    # Print connection info without password
+    print(f'  Host: {db_settings.get(\"HOST\", \"\")}')
+    print(f'  Port: {db_settings.get(\"PORT\", \"\")}')
+    print(f'  Name: {db_settings.get(\"NAME\", \"\")}')
+    print(f'  User: {db_settings.get(\"USER\", \"\")}')
+    exit(1)
+"
 
-  os=$($dc exec postgres cat /etc/os-release | grep 'ID=debian')
-  if [[ -z $os ]]; then
-    echo "Postgres image debian check failed, exiting..."
-    exit 1
-  fi
+# If the above command exits with an error, the script will stop here
 
   # Using django ORM to provide broader support for users with external databases
   $dcr web shell -c "
@@ -21,12 +34,8 @@ with connection.cursor() as cursor:
 
   if [[ -n "${CI:-}" || "${SKIP_USER_CREATION:-0}" == 1 ]]; then
     $dcr web upgrade --noinput --create-kafka-topics
-    echo ""
-    echo "Did not prompt for user creation. Run the following command to create one"
-    echo "yourself (recommended):"
-    echo ""
-    echo "  $dc_base run --rm web createuser"
-    echo ""
+    $dcr web createuser --no-input --superuser --email $SENTRY_USER_EMAIL --password $SENTRY_USER_PASSWORD
+    echo "Created user $SENTRY_USER_EMAIL"
   else
     $dcr web upgrade --create-kafka-topics
   fi

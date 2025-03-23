@@ -8,7 +8,7 @@
 ###############
 
 # mail.backend: 'smtp'  # Use dummy if you want to disable email entirely
-mail.host: 'smtp'
+mail.host: "smtp"
 # mail.port: 25
 # mail.username: ''
 # mail.password: ''
@@ -48,17 +48,17 @@ mail.host: 'smtp'
 # If this file ever becomes compromised, it's important to generate a new key.
 # Changing this value will result in all current sessions being invalidated.
 # A new key can be generated with `$ sentry config generate-secret-key`
-system.secret-key: '!!changeme!!'
+system.secret-key: "!!changeme!!"
 
 # The ``redis.clusters`` setting is used, unsurprisingly, to configure Redis
 # clusters. These clusters can be then referred to by name when configuring
 # backends such as the cache, digests, or TSDB backend.
-# redis.clusters:
-#   default:
-#     hosts:
-#       0:
-#         host: 127.0.0.1
-#         port: 6379
+redis.clusters:
+  default:
+    hosts:
+      0:
+        host: 127.0.0.1
+        port: 6379
 
 ################
 # File storage #
@@ -67,11 +67,11 @@ system.secret-key: '!!changeme!!'
 # Uploaded media uses these `filestore` settings. The available
 # backends are either `filesystem` or `s3`.
 
-filestore.backend: 'filesystem'
+filestore.backend: "filesystem"
 filestore.options:
-  location: '/data/files'
-dsym.cache-path: '/data/dsym-cache'
-releasefile.cache-path: '/data/releasefile-cache'
+  location: "/data/files"
+dsym.cache-path: "/data/dsym-cache"
+releasefile.cache-path: "/data/releasefile-cache"
 
 # filestore.backend: 's3'
 # filestore.options:
@@ -81,13 +81,12 @@ releasefile.cache-path: '/data/releasefile-cache'
 
 # The URL prefix in which Sentry is accessible
 # system.url-prefix: https://example.sentry.com
-system.internal-url-prefix: 'http://web:9000'
+system.internal-url-prefix: "http://web:9000"
 symbolicator.enabled: true
 symbolicator.options:
   url: "http://symbolicator:3021"
 
 transaction-events.force-disable-internal-project: true
-
 ######################
 # GitHub Integration #
 ######################
@@ -120,7 +119,6 @@ transaction-events.force-disable-internal-project: true
 # slack.signing-secret: <signing secret>
 ## If legacy-app is True use verification-token instead of signing-secret
 # slack.verification-token: <verification token>
-
 
 #######################
 # Discord Integration #
